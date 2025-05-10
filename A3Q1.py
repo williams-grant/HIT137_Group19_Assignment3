@@ -19,7 +19,6 @@ class control_frame(Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
-		# Put this sucker on the screen
         self.pack(side=LEFT,  pady=20)
 
         image_size = DoubleVar()
