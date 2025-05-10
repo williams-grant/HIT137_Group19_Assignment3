@@ -10,7 +10,6 @@ class photo_app(Tk):
 
         self.geometry('1680x800')
 
-        #Do something
         control_frame(self)
         
 
@@ -30,7 +29,6 @@ class control_frame(Frame):
         contrast = DoubleVar()
         contrast.set(100)
 
-		# Create a few buttons
         self.open_button = Button(self, text='Open File', command='')
         self.save_button = Button(self, text='Save File', command='')
         self.crop_label = Label(self, text='Crop Mode')
