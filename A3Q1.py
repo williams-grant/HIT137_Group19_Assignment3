@@ -21,6 +21,7 @@ class control_frame(Frame):
 
         self.pack(side=LEFT,  pady=20)
 
+        #Tkinter Variables
         image_size = DoubleVar()
         image_size.set(100)
         brightness = DoubleVar()
@@ -28,18 +29,19 @@ class control_frame(Frame):
         contrast = DoubleVar()
         contrast.set(100)
 
-        self.open_button = Button(self, text='Open File', command='')
-        self.save_button = Button(self, text='Save File', command='')
+        # Widgets
+        self.open_button = Button(self, text='Open File', command=self.open_file)
+        self.save_button = Button(self, text='Save File', command='')  # To be implemented
         self.crop_label = Label(self, text='Crop Mode')
         self.crop_toggle = Checkbutton(self, onvalue=True, offvalue=False)
         self.resize_label = Label(self, text='Resize image', padx=10)
-        self.resize_scale = Scale(self, variable=image_size, from_ = 1, to = 200,  orient=HORIZONTAL)
+        self.resize_scale = Scale(self, variable=self.image_size, from_=1, to=100, orient=HORIZONTAL, command=self.degrade_image_preview)
         self.brightness_label = Label(self, text='Brightness', padx=10)
-        self.brightness_scale = Scale(self, variable=brightness, from_ = 1, to = 200, orient=HORIZONTAL)
+        self.brightness_scale = Scale(self, variable=self.brightness, from_=1, to=200, orient=HORIZONTAL)
         self.contrast_label = Label(self, text='Contrast', padx=10)
-        self.contrast_scale = Scale(self, variable=contrast, from_ = 1, to = 200, orient=HORIZONTAL)
+        self.contrast_scale = Scale(self, variable=self.contrast, from_=1, to=200, orient=HORIZONTAL)
 
-
+        # Grid Layout
         self.open_button.grid(row=0, column=0, padx=10, pady=10)
         self.save_button.grid(row=0, column=1, padx=10, pady=10)
         self.crop_label.grid(row=1, column=0, padx=10, pady=10)
@@ -51,6 +53,24 @@ class control_frame(Frame):
         self.contrast_label.grid(row=6, column=0, columnspan=2, padx=10)
         self.contrast_scale.grid(row=7, column=0, columnspan=2, padx=10)
 
+def open_file(self):
+        file_path = fd.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
+        if file_path:
+            self.image = cv2.imread(file_path)
+            self.image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+
+            # Resize for thumbnail
+            resized = cv2.resize(self.image_rgb, (400, 300))
+            img_pil = Image.fromarray(resized)
+            img_tk = ImageTk.PhotoImage(img_pil)
+
+            if hasattr(self, 'img_label'):
+                self.img_label.config(image=img_tk)
+                self.img_label.image = img_tk
+            else:
+                self.img_label = Label(self, image=img_tk)
+                self.img_label.image = img_tk
+                self.img_label.grid(row=8, column=0, columnspan=2, pady=10)
 
 class file_frame(Frame):
     def __init__(self, parent):
