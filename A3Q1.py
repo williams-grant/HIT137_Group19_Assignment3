@@ -44,7 +44,7 @@ class control_frame(Frame):
 
         # Widgets
         self.open_button = Button(self, text='Open File', command=self.open_file)
-        self.save_button = Button(self, text='Save File', command=self.save_file)  # to add feature
+        self.save_button = Button(self, text='Save File', command=self.save_file) 
         self.crop_label = Label(self, text='Crop Mode')
         self.crop_toggle = Checkbutton(self, onvalue=True, offvalue=False)
         self.resize_label = Label(self, text='Resize Cropped Preview (%)', padx=10)
@@ -134,8 +134,22 @@ class control_frame(Frame):
             except Exception as e:
                 print("Error resizing preview:", e)
 
-    def save_file(self):
-        pass  # Placeholder for export logic
+   def save_file(self):
+        if self.cropped_image is not None:
+            print("Saving cropped image... Shape:", self.cropped_image.shape, "Dtype:", self.cropped_image.dtype)
+            file_path = fd.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
+            if file_path:
+                try:
+                    if self.cropped_image.ndim == 3 and self.cropped_image.shape[2] == 3 and self.cropped_image.dtype == np.uint8:
+                        img_pil = Image.fromarray(self.cropped_image)
+                        img_pil.save(file_path)
+                        messagebox.showinfo("Save Successful", f"Image saved to:\n{file_path}")
+                    else:
+                        messagebox.showerror("Save Error", "Invalid image format. Ensure it is an RGB image with dtype uint8.")
+                except Exception as e: 
+                    messagebox.showerror("Save Error", f"Failed to save image: {e}")
+        else:
+            messagebox.showwarning("No Image", "No cropped image to save.")
 
 
 if __name__ == "__main__":
