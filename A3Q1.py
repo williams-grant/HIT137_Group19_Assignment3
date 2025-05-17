@@ -10,7 +10,7 @@ import numpy as np
 class photo_app(Tk):
     def __init__(self):
         super().__init__()
-
+        self.title("Image Editing App")
         self.geometry('1680x800')
 
         # Layout containers
@@ -134,22 +134,19 @@ class control_frame(Frame):
             except Exception as e:
                 print("Error resizing preview:", e)
 
-   def save_file(self):
-        if self.cropped_image is not None:
-            print("Saving cropped image... Shape:", self.cropped_image.shape, "Dtype:", self.cropped_image.dtype)
-            file_path = fd.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
-            if file_path:
-                try:
-                    if self.cropped_image.ndim == 3 and self.cropped_image.shape[2] == 3 and self.cropped_image.dtype == np.uint8:
-                        img_pil = Image.fromarray(self.cropped_image)
-                        img_pil.save(file_path)
-                        messagebox.showinfo("Save Successful", f"Image saved to:\n{file_path}")
-                    else:
-                        messagebox.showerror("Save Error", "Invalid image format. Ensure it is an RGB image with dtype uint8.")
-                except Exception as e: 
-                    messagebox.showerror("Save Error", f"Failed to save image: {e}")
-        else:
+  def save_file(self):
+        if self.cropped_image is None:
             messagebox.showwarning("No Image", "No cropped image to save.")
+            return
+        file_path = fd.asksaveasfilename(defaultextension=".png",filetypes=[("PNG files", "*.png"),("JPEG files", "*.jpg"),("All files", "*.*")])
+        if not file_path:
+            return
+        try:
+            img_pil = Image.fromarray(self.cropped_image)
+            img_pil.save(file_path)
+            messagebox.showinfo("Save Successful", f"Image saved to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Failed to save image: {e}")
 
 
 if __name__ == "__main__":
