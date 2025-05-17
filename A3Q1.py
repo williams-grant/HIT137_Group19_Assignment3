@@ -1,10 +1,12 @@
 #Assignment 3 Question 1
 
-from tkinter import *
+from tkinter import as tk
 from tkinter import filedialog as fd
+from tkinter import HORIZONTAL, DoubleVar
+import cv2
+from PIL import Image, ImageTk
 
-
-class photo_app(Tk):
+class photo_app(tk.Tk):
     def __init__(self):
         super().__init__()
 
@@ -15,7 +17,7 @@ class photo_app(Tk):
 
 
 
-class control_frame(Frame):
+class control_frame(tk.Frame):
      def __init__(self, parent):
         super().__init__(parent)
 
@@ -54,23 +56,33 @@ class control_frame(Frame):
         self.contrast_scale.grid(row=7, column=0, columnspan=2, padx=10)
 
 def open_file(self):
-    file_path = fd.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
-    if file_path:
-        self.image = cv2.imread(file_path)
-        self.image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+        file_path = fd.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
+        if file_path:
+            self.image = cv2.imread(file_path)
+            self.image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
 
-        # Resize for thumbnail
-        resized = cv2.resize(self.image_rgb, (400, 300))
-        img_pil = Image.fromarray(resized)
-        img_tk = ImageTk.PhotoImage(img_pil)
+            # Resize for thumbnail preview
+            resized = cv2.resize(self.image_rgb, (400, 300))
+            img_pil = Image.fromarray(resized)
+            img_tk = ImageTk.PhotoImage(img_pil)
 
-        if hasattr(self, 'img_label'):
-            self.img_label.config(image=img_tk)
-            self.img_label.image = img_tk
-        else:
-            self.img_label = Label(self, image=img_tk)
-            self.img_label.image = img_tk
-            self.img_label.grid(row=8, column=0, columnspan=2, pady=10)
+            if hasattr(self, 'img_label'):
+                self.img_label.config(image=img_tk)
+                self.img_label.image = img_tk
+            else:
+                self.img_label = tk.Label(self, image=img_tk)
+                self.img_label.image = img_tk
+                self.img_label.grid(row=8, column=0, columnspan=2, pady=10)
+
+    def degrade_image_preview(self, scale_value):
+        # Placeholder method for slider callback
+        # You can implement progressive degradation of the image here
+        pass
+
+    def save_file(self):
+        # Placeholder for save functionality
+        pass
+
 
 class file_frame(Frame):
     def __init__(self, parent):
