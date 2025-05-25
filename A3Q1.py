@@ -21,6 +21,8 @@ class photo_app(Tk):
         self.image = None
         self.image_rgb = None
         self.crop_mode = BooleanVar()
+        #self.is_crop = BooleanVar()
+        self.is_crop = False
         self.edited_image = None
         self.crop_start = None
         self.crop_end = None
@@ -30,6 +32,9 @@ class photo_app(Tk):
         self.brightness = 0
         self.contrast = 1.0
         self.colourmode = None
+
+        self.undo_list = []
+        self.redo_list = []
 
         # Tkinter Variables
         self.image_size = DoubleVar(value=100)
@@ -69,8 +74,8 @@ class photo_app(Tk):
         #Keyboard Shortcuts
         self.bind_all('<Control-o>', lambda event: self.open_file())
         self.bind_all('<Control-s>', lambda event: self.save_file())
-        self.bind_all('<Control-z>', lambda event: self.undo())
-        self.bind_all('<Control-y>', lambda event: self.redo())
+        self.bind_all('<Control-z>', lambda event: self.undo_change())
+        self.bind_all('<Control-y>', lambda event: self.redo_change())
         self.bind_all('<c>', lambda event: self.set_colour_mode())
         self.bind_all('<g>', lambda event: self.set_greyscale_mode())
 
@@ -133,12 +138,18 @@ class photo_app(Tk):
             x1, x2 = sorted([int(x1 * scale_x), int(x2 * scale_x)])
             y1, y2 = sorted([int(y1 * scale_y), int(y2 * scale_y)])
 
+            self.undo_list.append(self.edited_image)
+            self.is_crop = True
             self.image_frame.original_image_panel.delete(self.rect)
             self.edited_image = self.image[y1:y2, x1:x2]
             self.update_preview()
 
     def update_preview(self, _=None):
         if self.edited_image is not None and self.image_frame:
+            if not self.is_crop:
+                self.undo_list.append(self.edited_image.copy())
+            self.is_crop = False
+
             try:
                 scale_percent = float(self.preview_resize_var.get())
                 width = int(self.edited_image.shape[1] * scale_percent / 100)
@@ -172,8 +183,6 @@ class photo_app(Tk):
         return adjusted_img
 
 
-
-
     def set_colour_mode(self, _=None):
         self.colourmode = 'C'
         self.update_preview()
@@ -182,18 +191,44 @@ class photo_app(Tk):
         self.colourmode = 'G'
         self.update_preview()
 
+    def undo_change(self, _=None):
+        if len(self.undo_list) == 0:
+            messagebox.showwarning('Nothing to undo', 'There is nothing to undo')
+        else:
+            self.redo_list.append(self.edited_image.copy())
+            self.edited_image = self.undo_list.pop()
+            self.update_preview()
+            
+
+    def redo_change(self, _=None):
+        if len(self.redo_list) == 0:
+            messagebox.showwarning('Nothing to redo', 'There is nothing to redo')
+        else:
+            self.undo_list.append(self.edited_image.copy())
+            self.edited_image = self.redo_list.pop()
+            self.update_preview()
+
 
     def reset_image(self):
+
         self.edited_image = self.image
+        
         self.image_size.set(100)
+        self.brightness.set(100)
+        self.contrast.set(100)
+
+        self.undo_list.clear()
+        self.redo_list.clear()
+
         self.display_image()
+
 
 class title_frame(Frame):
     def __init__(self, parent):
         super().__init__(parent)
         title_font = font.Font(family='Arial', size=25)
         self.title_label = Label(text='TKinter/OpenCV Image Editor', font=title_font)
-        self.title_label.pack()
+        self.title_label.pack(pady=20)
 
 class control_frame(Frame):
     def __init__(self, parent):
@@ -213,6 +248,8 @@ class control_frame(Frame):
         self.colour_label = Label(self, text='Colouring', padx=10)
         self.colour_button = Button(self, text='Colour', command=parent.set_colour_mode)
         self.greyscale_button = Button(self, text='Greyscale', command=parent.set_greyscale_mode)
+        self.undo_button = Button(self, text='Undo', command=parent.undo_change)
+        self.redo_button = Button(self, text='Redo', command=parent.redo_change)
         self.reset_button = Button(self, text='Reset Image', command=parent.reset_image)
 
         #Control Panel Grid Layout
@@ -229,7 +266,9 @@ class control_frame(Frame):
         self.colour_label.grid(row=8, column=0, columnspan=2, padx=10, pady=10)
         self.colour_button.grid(row=9, column=0, padx=10)
         self.greyscale_button.grid(row=9, column=1, padx=10)
-        self.reset_button.grid(row=10, column=0, columnspan=2, padx=10, pady=30)
+        self.undo_button.grid(row=10, column=0, padx=10, pady=(20,10))
+        self.redo_button.grid(row=10, column=1, padx=10, pady=(20,10))
+        self.reset_button.grid(row=11, column=0, columnspan=2, padx=10, pady=10)
 
 class preview_frame(Frame):
     def __init__(self, parent):
