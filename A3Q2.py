@@ -15,7 +15,7 @@ from pygame.locals import (
 # Initialise game and setup screen
 pygame.init()
 font = pygame.font.SysFont("Arial", 30)
-SCREEN_WIDTH, SCREEN_HEIGHT = 800, 800
+SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 800
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Game") #Can change name
 clock = pygame.time.Clock()
