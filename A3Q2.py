@@ -151,7 +151,7 @@ class Enemy(pygame.sprite.Sprite):
         original_image = pygame.image.load("images/tank.png").convert()
         scaled_image = pygame.transform.scale(original_image, (300, 210))  
         self.image = scaled_image
-        self.rect = self.image.get_rect(midbottom=(SCREEN_WIDTH + 100, SCREEN_HEIGHT - 30))
+        self.rect = self.image.get_rect(midbottom=(SCREEN_WIDTH + random.randint(100, 400), SCREEN_HEIGHT - 30))
         self.speed = random.randint(1 + level, 2 + level)
         self.health = 2 + level
 
