@@ -357,3 +357,7 @@ while running:
     clock.tick(60)
 
 pygame.quit()
+
+
+#Will crash after level 1 since no level 2 and 3 bg image at this stage
+#Need to change size of enemies so player can jump over them, potentially add platforms and enemies that can change heights
