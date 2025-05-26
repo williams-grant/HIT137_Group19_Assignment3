@@ -86,7 +86,18 @@ class Player(pygame.sprite.Sprite):
         self.health = 100
         self.lives = 3  
         self.max_jumps = 2
-    
+        
+    def take_damage(self, amount):
+        if self.lives <= 0:
+            return
+        self.health -= amount
+        if self.health <= 0:
+            self.lives = max(0, self.lives -1)
+            if self.lives > 0:
+                self.health = 100
+            else:
+                self.health = 0   
+                
     def jump(self):
         if self.jumpCount < self.max_jumps:
             self.vel_y = -10
@@ -120,8 +131,6 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
-
-#Done up to here
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -293,11 +302,9 @@ while running:
         player.health = min(100, player.health + 20)
 
     # Check player death
-    if player.health <= 0:
-        player.lives -= 1
-        if player.lives > 0:
-            player.health = 100
-        else:
+    if player.health <= 0 and not level_complete:
+        player.take_damage(0) 
+        if player.lives == 0:
             level_complete = True
 
     # Level transitions
