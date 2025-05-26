@@ -138,7 +138,9 @@ class photo_app(Tk):
             x1, x2 = sorted([int(x1 * scale_x), int(x2 * scale_x)])
             y1, y2 = sorted([int(y1 * scale_y), int(y2 * scale_y)])
 
-            self.undo_list.append(self.edited_image)
+            self.undo_list.append(self.edited_image.copy())
+            self.redo_list.clear()
+            
             self.is_crop = True
             self.image_frame.original_image_panel.delete(self.rect)
             self.edited_image = self.image[y1:y2, x1:x2]
@@ -147,7 +149,7 @@ class photo_app(Tk):
     def update_preview(self, _=None):
         if self.edited_image is not None and self.image_frame:
             if not self.is_crop:
-                self.undo_list.append(self.edited_image.copy())
+                pass
             self.is_crop = False
 
             try:
