@@ -5,25 +5,27 @@ from pygame.locals import (
     K_LEFT,
     K_RIGHT,
     K_UP,
-    K_DOWN,
-    K_ESCAPE,
-    KEYDOWN,
+    K_ESCAPE, #Add into code somewhere
+    KEYDOWN, 
     QUIT,
     RLEACCEL,
     K_r,
 )
 
-# Initialize
+# Initialise game and setup screen
 pygame.init()
 font = pygame.font.SysFont("Arial", 30)
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 800
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Game")
+pygame.display.set_caption("Game") #Can change name
 clock = pygame.time.Clock()
 
-# Background 1
-bg_image = pygame.image.load("images/background.jpeg").convert()
-bg_image = pygame.transform.scale(bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+# Backgrounds for levels
+bg_images = {
+    1: pygame.transform.scale(pygame.image.load("images/background1.jpeg").convert(), (SCREEN_WIDTH, SCREEN_HEIGHT)),
+    #2: pygame.transform.scale(pygame.image.load("images/background2.jpeg").convert(), (SCREEN_WIDTH, SCREEN_HEIGHT)),
+    #3: pygame.transform.scale(pygame.image.load("images/background2.jpeg").convert(), (SCREEN_WIDTH, SCREEN_HEIGHT)),
+    #Find an image for 2 and 3
 
 # Colours 
 WHITE = (255, 255, 255)
@@ -35,7 +37,7 @@ CYAN = (0, 255, 255)
 # Game variables
 tile_size = 60
 score = 0
-main_menu = True
+main_menu = True #Add main menu into code
 current_level = 1
 max_level = 3
 boss_fight = False
@@ -43,8 +45,7 @@ level_complete = False
 
 
 # Classes
-class HealthBar():
-    
+class HealthBar(): #This isnt used, draw health bar is added later - look into    
     def __init__(self, x, y, width, height, max_hp):
         self.x = x
         self.y = y
@@ -58,14 +59,14 @@ class HealthBar():
         ratio = self.hp / self.max_hp
         pygame.draw.rect(surface, (0, 255, 0), (self.x, self.y, self.width * ratio, self.height))
 
-class Ground(pygame.sprite.Sprite):
+class Ground(pygame.sprite.Sprite): #Not sure if this is adding anything
     def __init__(self, x, y, width, height):
         super().__init__()
         self.image = pygame.Surface((width, height))
         self.image.fill(GREEN)
         self.rect = self.image.get_rect(topleft=(x, y))
 
-class Player(pygame.sprite.Sprite):
+class Player(pygame.sprite.Sprite): #Could add different speeds
     def __init__(self):
         super().__init__()
         original_image = pygame.image.load("images/soldier.png").convert()
@@ -132,7 +133,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
 
-class Bullet(pygame.sprite.Sprite):
+class Bullet(pygame.sprite.Sprite): #Add firing rate/cooldown time
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.Surface((10, 5))
@@ -145,7 +146,7 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.left > SCREEN_WIDTH:
             self.kill()
 
-class Enemy(pygame.sprite.Sprite):
+class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
     def __init__(self, level):
         super().__init__()
         original_image = pygame.image.load("images/tank.png").convert()
@@ -160,7 +161,8 @@ class Enemy(pygame.sprite.Sprite):
         if self.rect.right < 0:
             self.kill()
 
-class Collectible(pygame.sprite.Sprite):
+class Collectible(pygame.sprite.Sprite): #add different types of collectibles eg extra life
+    def __init__(self, x, y):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.Surface((20, 20))
@@ -173,7 +175,7 @@ class Collectible(pygame.sprite.Sprite):
         if self.rect.right < 0:
             self.kill()
 
-class Boss(pygame.sprite.Sprite):
+class Boss(pygame.sprite.Sprite): #Could make it move different ways, add an image instead of rectangle
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((120, 100))
@@ -222,7 +224,7 @@ objects = pygame.sprite.Group()
 ground = Ground(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20)
 objects.add(ground)
 
-# Timers
+# Timers #Add more enemies, waves of enemies, different speeds
 enemy_spawn_event = pygame.USEREVENT + 1
 pygame.time.set_timer(enemy_spawn_event, 1500)
 
