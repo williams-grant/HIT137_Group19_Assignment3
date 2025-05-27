@@ -71,6 +71,15 @@ class photo_app(Tk):
         self.image_frame.original_image_panel.bind('<B1-Motion>', self.draw_crop_rect)
         self.image_frame.original_image_panel.bind('<ButtonRelease-1>', self.finish_crop)
 
+        #Scale Mouse Binds
+        self.control_panel.resize_scale.bind("<ButtonPress-1>", self.set_undo_point)
+        self.control_panel.brightness_scale.bind("<ButtonPress-1>", self.set_undo_point)
+        self.control_panel.contrast_scale.bind("<ButtonPress-1>", self.set_undo_point)
+
+        #Colour Mode Mouse Binds
+        self.control_panel.colour_button.bind("<ButtonPress-1>", self.set_undo_point)
+        self.control_panel.greyscale_button.bind("<ButtonPress-1>", self.set_undo_point)
+
         #Keyboard Shortcuts
         self.bind_all('<Control-o>', lambda event: self.open_file())
         self.bind_all('<Control-s>', lambda event: self.save_file())
@@ -97,7 +106,7 @@ class photo_app(Tk):
         if not file_path:
             return
         try:
-            img_pil = Image.fromarray(self.edited_image)
+            img_pil = Image.fromarray(cv2.cvtColor(self.edited_image, cv2.COLOR_BGR2RGB))
             img_pil.save(file_path)
             messagebox.showinfo('Save Successful', f'Image saved to:\n{file_path}')
         except Exception as e:
@@ -138,8 +147,7 @@ class photo_app(Tk):
             x1, x2 = sorted([int(x1 * scale_x), int(x2 * scale_x)])
             y1, y2 = sorted([int(y1 * scale_y), int(y2 * scale_y)])
 
-            self.undo_list.append(self.edited_image.copy())
-            self.redo_list.clear()
+            self.set_undo_point()
             
             self.is_crop = True
             self.image_frame.original_image_panel.delete(self.rect)
@@ -148,9 +156,6 @@ class photo_app(Tk):
 
     def update_preview(self, _=None):
         if self.edited_image is not None and self.image_frame:
-            if not self.is_crop:
-                pass
-            self.is_crop = False
 
             try:
                 scale_percent = float(self.preview_resize_var.get())
@@ -193,12 +198,37 @@ class photo_app(Tk):
         self.colourmode = 'G'
         self.update_preview()
 
+    def set_undo_point(self, _=None):
+        if not self.edited_image is None:
+            self.undo_list.append((
+                self.edited_image.copy(),
+                self.preview_resize_var.get(),
+                self.brightness.get(),
+                self.contrast.get(),
+                self.colourmode
+            ))
+            self.redo_list.clear()
+
     def undo_change(self, _=None):
         if len(self.undo_list) == 0:
             messagebox.showwarning('Nothing to undo', 'There is nothing to undo')
         else:
-            self.redo_list.append(self.edited_image.copy())
-            self.edited_image = self.undo_list.pop()
+            self.redo_list.append((
+                self.edited_image.copy(),
+                self.preview_resize_var.get(),
+                self.brightness.get(),
+                self.contrast.get(),
+                self.colourmode
+            ))
+
+            img, resize_var, brightness, contrast, colourmode = self.undo_list.pop()
+
+            self.edited_image = img
+            self.preview_resize_var.set(resize_var)
+            self.brightness.set(brightness)
+            self.contrast.set(contrast)
+            self.colourmode = colourmode
+
             self.update_preview()
             
 
@@ -206,8 +236,22 @@ class photo_app(Tk):
         if len(self.redo_list) == 0:
             messagebox.showwarning('Nothing to redo', 'There is nothing to redo')
         else:
-            self.undo_list.append(self.edited_image.copy())
-            self.edited_image = self.redo_list.pop()
+            self.undo_list.append((
+                self.edited_image.copy(),
+                self.preview_resize_var.get(),
+                self.brightness.get(),
+                self.contrast.get(),
+                self.colourmode
+            ))
+
+            img, resize_var, brightness, contrast, colourmode = self.redo_list.pop()
+
+            self.edited_image = img
+            self.preview_resize_var.set(resize_var)
+            self.brightness.set(brightness)
+            self.contrast.set(contrast)
+            self.colourmode = colourmode
+
             self.update_preview()
 
 
