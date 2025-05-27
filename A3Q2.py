@@ -299,7 +299,7 @@ reset_game()
 
 def draw_main_menu():
     screen.fill((0, 0, 0))
-    title = font.render("you stink", True, WHITE) #game menu title
+    title = font.render("Main Menu", True, WHITE) #game menu title
     start_msg = font.render("Press Any Key To Start", True, WHITE)
     quit_msg = font.render("Press ESC to Quit", True, WHITE)
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 300))
