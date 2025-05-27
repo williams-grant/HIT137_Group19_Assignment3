@@ -1,6 +1,6 @@
 import pygame
 import random
-import math #
+import math 
 
 from pygame.locals import (
     K_SPACE,
@@ -14,7 +14,6 @@ from pygame.locals import (
     K_r,
     K_KP_ENTER,
     K_RETURN, 
-    K_x
 )
 
 # Initialise game and setup screen
@@ -26,16 +25,17 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Game") #Change name
 clock = pygame.time.Clock()
 
-# Backgrounds for levels            #Add images for 2 and 3
-
-bg_image1 = pygame.transform.scale(pygame.image.load("images/background1.jpeg").convert(), (screen_width, screen_height)
+# Backgrounds for levels           
+bg_image1 = pygame.transform.scale(pygame.image.load("images/Background1.png").convert(), (screen_width, screen_height)
                                 )
-bg_image2 = pygame.transform.scale(pygame.image.load("images/background1.jpeg").convert(), (screen_width, screen_height)
+bg_image2 = pygame.transform.scale(pygame.image.load("images/Background2.png").convert(), (screen_width, screen_height)
                                 ) 
-bg_image3 = pygame.transform.scale(pygame.image.load("images/background1.jpeg").convert(), (screen_width, screen_height)
+bg_image3 = pygame.transform.scale(pygame.image.load("images/Background3.jpeg").convert(), (screen_width, screen_height)
                                 )
-scroll = 0
-bg_width = image1.get_width()
+scroll_level1 = 0
+scroll_level2 = 0
+scroll_level3 = 0
+bg_width = bg_image1.get_width()
 tiles = math.ceil(screen_width / bg_width) + 1
 
 # Colours 
@@ -48,68 +48,19 @@ MAGENTA = (255, 0, 255)
 BROWN = (150, 75, 0)
 
 # Game variables
-tile_size = 60
-score = 0
 main_menu = True
 current_level = 1
 max_level = 3
 boss_fight = False
 level_complete = False
+MULTISHOT_DURATION = 5000
 
-# Multishot
-multishot_active = False
-multishot_timer = 0
-MULTISHOT_DURATION = 300
-
+# Game objects
+platforms = pygame.sprite.Group()
+platforms_spawned = False
+ADDENEMY = pygame.USEREVENT + 1
 
 # Classes
-class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        original_image = pygame.image.load("images/soldier.png").convert()
-        scaled_image = pygame.transform.scale(original_image, (240, 150))  
-        self.image = scaled_image
-        self.image.set_colorkey((0, 0, 0), RLEACCEL)
-        self.rect = self.image.get_rect(center=(100, screen_height // 2)) 
-        self.pos_x = float(self.rect.x)
-        self.pos_y = float(self.rect.y)
-        self.vel_y = 0
-        self.jumping = False
-        self.jumpCount = 0
-        self.gravity = 0.5
-        self.fallcount = 0
-        self.health = 100
-        self.lives = 3  
-        self.max_jumps = 2
-        self.last_shot_time = 0                  
-        self.shot_cooldown = 400
-
-    def take_damage(self, amount):
-        if self.lives <= 0:
-            return
-        self.health -= amount
-        if self.health <= 0:
-            self.lives = max(0, self.lives -1)
-            if self.lives > 0:
-                self.health = 100
-            else:
-                self.health = 0        
-    
-    def jump(self):
-        if self.jumpCount < self.max_jumps:
-            self.vel_y = -10
-            self.jumpCount += 1
-            self.jumping = True
-
-    def update(self, pressed_keys, platforms):
-        speed = 5
-        if pressed_keys[K_LEFT]:
-            self.pos_x -= speed
-        if pressed_keys[K_RIGHT]:
-            self.pos_x += speed   
-        
-        self.pos_x = max(0, min(self.pos_x, screen_width - self.rect.width))
-
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -153,11 +104,7 @@ class Player(pygame.sprite.Sprite):
         if pressed_keys[K_LEFT]:
             self.pos_x -= speed
         if pressed_keys[K_RIGHT]:
-            self.pos_x += speed
-        if pressed_keys[K_UP]:
-            self.pos_y -= speed
-        if pressed_keys[K_DOWN]:
-            self.pos_y += speed    
+            self.pos_x += speed   
         
         self.pos_x = max(0, min(self.pos_x, screen_width - self.rect.width))
         
@@ -312,10 +259,48 @@ class BossBullet(pygame.sprite.Sprite):
         if self.rect.right < 0:
             self.kill()
 
+def reset_game():
+    global player, enemies, bullets, health_bar, score, game_over, powerups
+    global multishot_active, multishot_timer, level, score_to_next_level, enemy_spawn_interval
+    global all_sprites, boss_group, boss_bullets, objects, platforms, main_menu
+    global platforms_spawned, current_level, boss_fight, level_complete, player_group
+
+    player = Player()
+    player_group = pygame.sprite.Group(player)
+    enemies = pygame.sprite.Group()
+    bullets = pygame.sprite.Group()
+    powerups = pygame.sprite.Group()
+    health_bar = HealthBar(20, 20, 200, 25, 100)
+    score = 0
+    game_over = False
+    multishot_active = False
+    multishot_timer = 0
+    level = 1
+    score_to_next_level = 10
+    enemy_spawn_interval = 550
+    pygame.time.set_timer(ADDENEMY, enemy_spawn_interval)
+
+    all_sprites = pygame.sprite.Group(player)
+    boss_group = pygame.sprite.Group()
+    boss_bullets = pygame.sprite.Group()
+
+    objects = pygame.sprite.Group()
+    ground = Ground(0, screen_height - 20, screen_width, 20)
+    objects.add(ground)
+
+    platforms = pygame.sprite.Group()
+    platforms_spawned = False
+    current_level = 1
+    boss_fight = False
+    level_complete = False
+    main_menu = True
+
+reset_game()
+
 def draw_main_menu():
     screen.fill((0, 0, 0))
     title = font.render("you stink", True, WHITE) #game menu title
-    start_msg = font.render("Press ENTER to Start", True, WHITE)
+    start_msg = font.render("Press Any Key To Start", True, WHITE)
     quit_msg = font.render("Press ESC to Quit", True, WHITE)
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 300))
     screen.blit(start_msg, (screen_width // 2 - start_msg.get_width() // 2, 400))
@@ -333,69 +318,49 @@ def draw_boss_health_bar(surface, x, y, health, max_health):
  #Edited up to here
 
 
-# Groups
-player = Player()
-player_group = pygame.sprite.Group(player)
-bullets = pygame.sprite.Group()
-enemies = pygame.sprite.Group()
-boss_group = pygame.sprite.Group()
-boss_bullets = pygame.sprite.Group()
-objects = pygame.sprite.Group()
-ground = Ground(0, screen_height - 20, screen_width, 20)
-objects.add(ground)
-platforms = pygame.sprite.Group()
-powerups= pygame.sprite.Group()
-multishot_active = True 
-multishot_timer = 2
-MULTISHOT_DURATION = 300 
-
 # Timers #Add more enemies, waves of enemies, different speeds
 enemy_spawn_event = pygame.USEREVENT + 1
 pygame.time.set_timer(enemy_spawn_event, 1500)
-
-# Main Loop
-running = True
 platforms_spawned = False 
 multishot_active = False
 multishot_timer = 0
 
-
+# Main Loop
+running = True
 while running:
     current_time = pygame.time.get_ticks()
     pressed_keys = pygame.key.get_pressed()
-    collected_powerups = pygame.sprite.spritecollide(player, powerups, True)
-      
-    for powerup in collected_powerups: 
-                if powerup.type == 'health':
-                    player.health =  min(100, player.health + 5)
-                elif powerup.type == 'bonus': 
-                    score += 5  
-                elif powerup.type == 'multishot':
-                    multishot_active = True
-                    multishot_timer = current_time
-    
+
     if current_level == 1:
         for i in range(tiles):
-            screen.blit(image1, (i * bg_width + scroll, 0)) 
-        scroll -= 2
-        if abs(scroll) > bg_width:
-            scroll = 0    
+            screen.blit(bg_image1, (i * bg_width + scroll_level1, 0)) 
+        scroll_level1 -= 2
+        if abs(scroll_level1) > bg_width:
+            scroll_level1 = 0
+
     elif current_level == 2:
-        screen.blit(image2, (0, 0))
+        for i in range(tiles):
+           screen.blit(bg_image2, (i * bg_width + scroll_level2, 0)) 
+        scroll_level2 -= 2
+        if abs(scroll_level2) > bg_width:
+            scroll_level2 = 0
+
     elif current_level == 3:
-        screen.blit(image3, (0, 0))
+        for i in range(tiles):
+           screen.blit(bg_image3, (i * bg_width + scroll_level3, 0)) 
+        scroll_level3 -= 2
+        if abs(scroll_level3) > bg_width:
+            scroll_level3 = 0
 
     for event in pygame.event.get():
         if event.type == QUIT:
             running = False
 
         elif event.type == KEYDOWN:
-            if event.key == K_ESCAPE:
-                running = False  
-
-            elif event.key in (K_RETURN, K_KP_ENTER, K_x) and main_menu:
+            if main_menu:
                 main_menu = False
-
+            elif event.key == K_ESCAPE:
+                running = False
             elif event.key == K_SPACE and not main_menu:
                 if multishot_active:
                     bullets.add(Bullet(player.rect.right, player.rect.centery - 10))
@@ -404,52 +369,49 @@ while running:
                 else:
                     bullets.add(Bullet(player.rect.right, player.rect.centery))
                 player.last_shot_time = current_time
-
             elif event.key == K_UP:  
                 player.jump()
+            elif event.key == K_r and level_complete:
+                reset_game()
 
-            if event.key == K_r and level_complete:
-                score = 0
-                current_level = 1
-                player.health = 100
-                player.lives = 3
-                level_complete = False
-                boss_fight = False
-                main_menu = True
-                enemies.empty()
-                bullets.empty()
-                boss_group.empty()
-                boss_bullets.empty()
-                platforms.empty()
-                powerups.empty()
-                platforms_spawned = False
-
-        elif event.type == enemy_spawn_event and not level_complete and not boss_fight and not main_menu:
+        
+        elif event.type == ADDENEMY and not level_complete and not boss_fight and not main_menu:
             if current_level < 3:
-                enemies.add(Enemy(current_level))
+                enemies.add(Enemy(current_level)) 
 
     if current_level == 2 and not platforms_spawned:
         platforms.add(Platform(200, screen_height - 150))
         platforms.add(Platform(400, screen_height - 250))
         platforms.add(Platform(600, screen_height - 350))
-        platforms_spawned = True        
-    
-    if multishot_active and current_time - multishot_timer > MULTISHOT_DURATION:
-        multishot_active = False
+        platforms_spawned = True  
 
-   
     if main_menu:
         draw_main_menu()
         pygame.display.flip()
         clock.tick(60)
-        continue    
-            
+        continue        
+
+    collected_powerups = pygame.sprite.spritecollide(player, powerups, True)
+    for powerup in collected_powerups: 
+                if powerup.type == 'health':
+                    player.health =  min(100, player.health + 5)
+                elif powerup.type == 'bonus': 
+                    score += 5  
+                elif powerup.type == 'multishot':
+                    multishot_active = True
+                    multishot_timer = current_time
+    if multishot_active and current_time - multishot_timer > MULTISHOT_DURATION:
+        multishot_active = False
+
+    
     # Update
     player.update(pressed_keys)
     bullets.update()
     enemies.update()
     boss_group.update()
     boss_bullets.update()
+    powerups.update()
+    platforms.update()
 
 # Collisions
     # Bullet hits enemy
@@ -462,7 +424,7 @@ while running:
                 enemy.kill()
                 score += 1
                 if random.random() < 1 and current_level == 2:
-                    powerups.add(powerups(enemy.rect.centerx, enemy.rect.centery))
+                    powerups.add(PowerUp(enemy.rect.centerx, enemy.rect.centery))
 
     # Bullet hits boss
     if boss_fight:
@@ -474,8 +436,8 @@ while running:
                     if boss.health <= 0:
                         boss.kill()
                         level_complete = True
-                        if random.random() < 1:  #CHANCE OF DROP 
-                            powerup = PowerUp(enemy.rect.centerx, enemy.rect.centery)
+                        if random.random() < 0.5:  #CHANCE OF DROP 
+                            powerup = PowerUp(boss.rect.centerx, boss.rect.centery)
                             powerups.add(powerup)
 
     # Boss bullet hits player
@@ -530,7 +492,13 @@ while running:
 
     # Win or lose screen
     if level_complete:
-        msg = "You Win!" if player.lives > 0 and not boss_group else "Game Over"
+        if player.lives == 0:
+            msg = "Game Over"
+        elif current_level == 3 and boss_fight and not boss_group:
+            msg = "Victory!"
+        else:
+            msg = "You Win!"
+
         screen.blit(font.render(msg, True, RED),
                     (screen_width // 2 - 100, screen_height // 2))
         screen.blit(font.render("Press R to Restart", True, WHITE),
