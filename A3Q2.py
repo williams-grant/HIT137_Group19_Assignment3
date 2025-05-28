@@ -14,6 +14,7 @@ from pygame.locals import (
     K_r,
     K_KP_ENTER,
     K_RETURN, 
+    K_p,
 )
 
 # Initialise game and setup screen
@@ -37,6 +38,10 @@ scroll_level2 = 0
 scroll_level3 = 0
 bg_width = bg_image1.get_width()
 tiles = math.ceil(screen_width / bg_width) + 1
+#main menu
+main_menu_bg = pygame.transform.scale(pygame.image.load("images/mainmenu.jpg").convert(), (screen_width, screen_height))
+#pause
+paused = False
 
 # Colours 
 WHITE = (255, 255, 255)
@@ -46,9 +51,10 @@ YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 MAGENTA = (255, 0, 255)
 BROWN = (150, 75, 0)
+BLACK = (0,0,0)
 
 # Game variables
-main_menu = True
+show_menu = True
 current_level = 1
 max_level = 3
 boss_fight = False
@@ -60,89 +66,161 @@ platforms = pygame.sprite.Group()
 platforms_spawned = False
 ADDENEMY = pygame.USEREVENT + 1
 
+def load_animation_frames(sheet_path, frame_width, frame_height, row, num_frames, colorkey=(0, 0, 0)):
+    sheet = pygame.image.load(sheet_path).convert_alpha()
+    sheet.set_colorkey((48, 73, 65))
+    frames = []
+
+    for i in range(num_frames):
+        x = i * frame_width
+        y = row * frame_height
+        frame = sheet.subsurface(pygame.Rect(x, y, frame_width, frame_height))
+        frames.append(frame)
+
+    return frames
+
 # Classes
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        original_image = pygame.image.load("images/soldier.png").convert()
-        scaled_image = pygame.transform.scale(original_image, (240, 150))  
-        self.image = scaled_image
-        self.image.set_colorkey((0, 0, 0), RLEACCEL)
-        self.rect = self.image.get_rect(center=(100, screen_height // 2)) 
+
+        # Set sprite sheet path and calculate frame dimensions
+        sprite_sheet_path = "images/Free-Soldier-Sprite-Sheets-Pixel-Art2.png"
+        frame_width = pygame.image.load(sprite_sheet_path).get_width() // 4
+        frame_height = pygame.image.load(sprite_sheet_path).get_height() // 4
+
+        # Load animations using correct frame dimensions
+        self.animations = {
+            "idle": load_animation_frames(sprite_sheet_path, frame_width, frame_height, 0, 4),
+            "walk": load_animation_frames(sprite_sheet_path, frame_width, frame_height, 2, 4),
+            "run":  load_animation_frames(sprite_sheet_path, frame_width, frame_height, 2, 4),
+            "shoot":load_animation_frames(sprite_sheet_path, frame_width, frame_height, 3, 4)
+        }
+
+        # Animation settings
+        self.state = "idle"
+        self.frame_index = 0
+        self.animation_speed = 0.3
+        self.frame_timer = 0
+        self.facing_right = True
+        self.shooting = False
+        self.shoot_anim_duration = 450  # milliseconds
+        self.shoot_anim_timer = 0
+
+        # Initial image and rect setup
+        self.image = self.animations[self.state][self.frame_index]
+        if not self.facing_right:
+            self.image = pygame.transform.flip(self.image, True, False)
+        self.rect = self.image.get_rect()
+        self.pos_x = float(self.rect.x)
+        self.pos_y = float(self.rect.y)
+
+        # Physics and state
         self.pos_x = float(self.rect.x)
         self.pos_y = float(self.rect.y)
         self.vel_y = 0
         self.jumping = False
         self.jumpCount = 0
         self.gravity = 0.5
-        self.fallcount = 0
+
+        # Health and lives
         self.health = 100
-        self.lives = 3  
+        self.lives = 3
         self.max_jumps = 2
-        self.last_shot_time = 0                  
+
+        # Shooting
+        self.last_shot_time = 0
         self.shot_cooldown = 400
 
-    def take_damage(self, amount):
-        if self.lives <= 0:
-            return
-        self.health -= amount
-        if self.health <= 0:
-            self.lives = max(0, self.lives -1)
-            if self.lives > 0:
-                self.health = 100
-            else:
-                self.health = 0        
-    
-    def jump(self):
-        if self.jumpCount < self.max_jumps:
-            self.vel_y = -10
-            self.jumpCount += 1
-            self.jumping = True
-
     def update(self, pressed_keys):
-        speed = 5
-        if pressed_keys[K_LEFT]:
-            self.pos_x -= speed
-        if pressed_keys[K_RIGHT]:
-            self.pos_x += speed   
-        
-        self.pos_x = max(0, min(self.pos_x, screen_width - self.rect.width))
-        
-        self.rect.x = int(self.pos_x)
-        self.rect.y = int(self.pos_y)
+        # Determine state
+        if self.shooting and pygame.time.get_ticks() - self.shoot_anim_timer > self.shoot_anim_duration:
+            self.shooting = False
+        if self.shooting:
+            self.state="shoot"
+        elif pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_RIGHT]:
+            self.state = "walk"
+        else:
+            self.state = "idle"
 
-    # Gravity and vertical movement
+        # Advance animation frame
+        self.frame_timer += self.animation_speed
+        if self.frame_timer >= 1:
+            self.frame_index = (self.frame_index + 1) % len(self.animations[self.state])
+            self.frame_timer = 0
+
+        # Update image
+        current_midbottom = self.rect.midbottom
+
+        self.image = self.animations[self.state][self.frame_index]
+        if not self.facing_right:
+            self.image = pygame.transform.flip(self.image, True, False)
+
+        self.rect = self.image.get_rect()
+        self.rect.midbottom = current_midbottom
+        frame = self.animations[self.state][self.frame_index]
+        
+        # Movement
+        speed = 5
+        if pressed_keys[pygame.K_LEFT]:
+            self.pos_x -= speed
+            self.facing_right = False
+        if pressed_keys[pygame.K_RIGHT]:
+            self.pos_x += speed
+            self.facing_right = True
+        self.pos_x = max(0, min(self.pos_x, screen_width - self.rect.width))
+
+        # Gravity
         self.vel_y += self.gravity
         self.pos_y += self.vel_y
 
-    # Floor collision
         if self.pos_y + self.rect.height >= screen_height - 20:
             self.pos_y = screen_height - 20 - self.rect.height
             self.vel_y = 0
             self.jumpCount = 0
             self.jumping = False
 
-        if self.vel_y >= 0:
-            hits = pygame.sprite.spritecollide(self, platforms, False)
-        else:
-            hits = [ ]
-        if hits:
-            lowest_platform = hits[0]
-            for platform in hits:
-                if platform.rect.top < lowest_platform.rect.top:
-                    lowest_platform = platform
-
-            if self.rect.bottom > lowest_platform.rect.top:
-                self.pos_y = lowest_platform.rect.top - self.rect.height
-                self.vel_y = 0
-                self.jumpCount = 0
-                self.jumping = False
-
-        self.pos_y = max(0, min(self.pos_y, screen_height - self.rect.height)) 
-        
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
 
+        on_platform = False
+        for platform in platforms:
+            platform_left = platform.rect.left
+            platform_right = platform.rect.right
+            player_center = self.rect.centerx
+            player_half_width = self.rect.width // 2
+
+            if (
+                self.vel_y >= 0 and
+                self.rect.bottom <= platform.rect.top + 5 and
+                self.rect.bottom + self.vel_y >= platform.rect.top and
+                player_center + player_half_width // 2 > platform_left and
+                player_center - player_half_width // 2 < platform_right
+            ):
+                self.pos_y = platform.rect.top - self.rect.height
+                self.vel_y = 0
+                self.jumpCount = 0
+                self.jumping = True
+                on_platform = True
+                break
+        
+        if not on_platform and self.pos_y + self.rect.height < screen_height - 20:
+            self.jumping = True
+   
+    def take_damage(self, amount):
+        if self.lives <= 0:
+            return
+        self.health -= amount
+        if self.health <= 0:
+            self.lives = max(0, self.lives - 1)
+            self.health = 100 if self.lives > 0 else 0
+
+    def jump(self):
+        if self.jumpCount < self.max_jumps:
+            self.vel_y = -10
+            self.jumpCount += 1
+            self.jumping = True
 
 class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
     def __init__(self, level):
@@ -158,6 +236,9 @@ class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
             spawn_y = screen_height - 20  
             self.rect = self.image.get_rect(midbottom=(spawn_x, spawn_y))
         else:
+            original_image = pygame.image.load("images/plane.png").convert()
+            scaled_image = pygame.transform.scale(original_image, (200, 110))  
+            self.image = scaled_image
             spawn_y = random.randint(0, screen_height - self.image.get_height())
             self.rect = self.image.get_rect(topleft=(spawn_x, spawn_y))
 
@@ -165,9 +246,46 @@ class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
         self.speed = base_speed + level * 5
         base_hp = 1
         self.health = base_hp + level * 2 - 2
-         
+
     def update(self):
         self.rect.move_ip(-self.speed, 0)
+        if self.rect.right < 0:
+            self.kill()
+
+class Sittingenemy(Enemy): # this is start of sitting eneum that g oon platfroms
+    def __init__(self, x, y, level):
+        super().__init__(level)
+        original_image = pygame.image.load("images/sittingenemy.jpg").convert()
+        self.image = pygame.transform.scale(original_image, (200, 110))  
+        self.image.set_colorkey((0, 0, 0), RLEACCEL)
+        self.rect = self.image.get_rect(midbottom=(x, y))
+        self.health = 3  
+        self.level = level
+        self.rect = self.image.get_rect()
+        self.rect.x = 500
+        self.rect.y = screen_height - 400
+
+    def update(self):
+        pass 
+        if self.rect.right < 0:
+            self.kill()
+
+class SineEnemy(Enemy):
+    def __init__(self, level):
+        super().__init__(level)
+        original_image = pygame.image.load("images/sineenemy.png").convert()
+        self.image = pygame.transform.scale(original_image, (200, 110))  
+        self.start_x = self.rect.x
+        self.start_y = self.rect.y
+        self.wave_amplitude = 250  # vertical swing
+        self.wave_frequency = 0.05  # controls speed of sine wave
+        self.frame = 0
+        self.speed = 3 + level
+
+    def update(self):
+        self.rect.x -= self.speed
+        self.rect.y = self.start_y + self.wave_amplitude * math.sin(self.frame * self.wave_frequency)
+        self.frame += 1
         if self.rect.right < 0:
             self.kill()
 
@@ -204,7 +322,7 @@ class PowerUp(pygame.sprite.Sprite):
             self.kill()    
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, width=100, height=20):
+    def __init__(self, x, y, width = 150, height = 20):
         super().__init__()
         self.image = pygame.Surface((width, height))
         self.image.fill((BROWN))  
@@ -234,17 +352,40 @@ class Ground(pygame.sprite.Sprite):
 class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface((120, 100))
-        self.image.fill((180, 0, 180))
+        self.last_laser_time = 0
+        self.lasers = pygame.sprite.Group()
+        original_image = pygame.image.load("images/boss.png").convert()
+        self.image = pygame.transform.scale(original_image, (200, 110))  
         self.rect = self.image.get_rect(midbottom=(screen_width - 50, screen_height - 20))
-        self.health = 30
+        self.health = 35
         self.shoot_timer = 0
+        self.laser_active = False
+        self.laser_duration = 1000
+        self.laser_cooldown = 0
 
     def update(self):
         self.shoot_timer += 1
+        current_time = pygame.time.get_ticks()
+    
         if self.shoot_timer > 60:
             boss_bullets.add(BossBullet(self.rect.centerx, self.rect.centery))
             self.shoot_timer = 0
+
+        # Cooldown countdown
+        if self.laser_cooldown > 0:
+            self.laser_cooldown -= 1
+
+        # Fire laser
+        if self.health < 50 and not self.laser_active and self.laser_cooldown == 0:
+            self.lasers.add(Laser(self.rect.left, self.rect.centery))
+            self.last_laser_time = pygame.time.get_ticks()
+            self.laser_active = True
+            print("Boss fires laser!")
+
+        # Turn off laser after duration
+        if self.laser_active and pygame.time.get_ticks() - self.last_laser_time > self.laser_duration * 10:
+            self.laser_active = False
+            self.laser_cooldown = 300  # wait ~5 seconds to fir
 
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -257,6 +398,19 @@ class BossBullet(pygame.sprite.Sprite):
     def update(self):
         self.rect.x -= self.speed
         if self.rect.right < 0:
+            self.kill()
+
+class Laser(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((600, 5))  # wider laser
+        self.image.fill((255, 0, 0))  # red beam
+        self.rect = self.image.get_rect(midleft=(x, y))
+        self.spawn_time = pygame.time.get_ticks()
+
+    def update(self):
+        
+        if pygame.time.get_ticks() - self.spawn_time > 1500:
             self.kill()
 
 def reset_game():
@@ -298,10 +452,9 @@ def reset_game():
 reset_game()
 
 def draw_main_menu():
-    screen.fill((0, 0, 0))
-    title = font.render("Main Menu", True, WHITE) #game menu title
-    start_msg = font.render("Press Any Key To Start", True, WHITE)
-    quit_msg = font.render("Press ESC to Quit", True, WHITE)
+    title = font.render("MAIN MENU", True, BLACK) #game menu title
+    start_msg = font.render("Press Any Key To Start", True, BLACK)
+    quit_msg = font.render("Press ESC to Quit", True, BLACK)
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 300))
     screen.blit(start_msg, (screen_width // 2 - start_msg.get_width() // 2, 400))
     screen.blit(quit_msg, (screen_width // 2 - quit_msg.get_width() // 2, 450))
@@ -317,7 +470,6 @@ def draw_boss_health_bar(surface, x, y, health, max_health):
  
  #Edited up to here
 
-
 # Timers #Add more enemies, waves of enemies, different speeds
 enemy_spawn_event = pygame.USEREVENT + 1
 pygame.time.set_timer(enemy_spawn_event, 1500)
@@ -332,25 +484,17 @@ while running:
     pressed_keys = pygame.key.get_pressed()
 
     if current_level == 1:
+        scroll_level1 = (scroll_level1 - 2) % bg_width
         for i in range(tiles):
-            screen.blit(bg_image1, (i * bg_width + scroll_level1, 0)) 
-        scroll_level1 -= 2
-        if abs(scroll_level1) > bg_width:
-            scroll_level1 = 0
-
+            screen.blit(bg_image1, (i * bg_width - scroll_level1, 0))
     elif current_level == 2:
+        scroll_level2 = (scroll_level2 - 2) % bg_width
         for i in range(tiles):
-           screen.blit(bg_image2, (i * bg_width + scroll_level2, 0)) 
-        scroll_level2 -= 2
-        if abs(scroll_level2) > bg_width:
-            scroll_level2 = 0
-
+            screen.blit(bg_image2, (i * bg_width - scroll_level2, 0))
     elif current_level == 3:
+        scroll_level3 = (scroll_level3 - 2) % bg_width
         for i in range(tiles):
-           screen.blit(bg_image3, (i * bg_width + scroll_level3, 0)) 
-        scroll_level3 -= 2
-        if abs(scroll_level3) > bg_width:
-            scroll_level3 = 0
+            screen.blit(bg_image3, (i * bg_width - scroll_level3, 0))
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -362,30 +506,55 @@ while running:
             elif event.key == K_ESCAPE:
                 running = False
             elif event.key == K_SPACE and not main_menu:
-                if multishot_active:
-                    bullets.add(Bullet(player.rect.right, player.rect.centery - 10))
-                    bullets.add(Bullet(player.rect.right, player.rect.centery))
-                    bullets.add(Bullet(player.rect.right, player.rect.centery + 10))
-                else:
-                    bullets.add(Bullet(player.rect.right, player.rect.centery))
-                player.last_shot_time = current_time
+                if current_time - player.last_shot_time > player.shot_cooldown:
+                    if multishot_active:
+                        bullets.add(Bullet(player.rect.right, player.rect.centery - 10))
+                        bullets.add(Bullet(player.rect.right, player.rect.centery))
+                        bullets.add(Bullet(player.rect.right, player.rect.centery + 10))
+                    else:
+                        bullets.add(Bullet(player.rect.right, player.rect.centery))
+                    player.last_shot_time = current_time
+                    player.shooting = True
+                    player.shoot_anim_timer = pygame.time.get_ticks()
             elif event.key == K_UP:  
                 player.jump()
             elif event.key == K_r and level_complete:
                 reset_game()
+            elif event.key == pygame.K_p:
+                paused = not paused
+                if paused:
+                    while paused:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                pygame.quit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                                paused = False
+            
+                        screen.blit(font.render("Paused - Press 'P' to resume", True, (255, 255, 255)), (250, 300))
+                        pygame.display.flip()
+                        clock.tick(5)  
 
-        
         elif event.type == ADDENEMY and not level_complete and not boss_fight and not main_menu:
-            if current_level < 3:
-                enemies.add(Enemy(current_level)) 
+            if current_level == 2:
+                if random.random() < 0.5:
+                    enemies.add(Enemy(current_level))
+                else:
+                    enemies.add(SineEnemy(current_level))
+            elif current_level == 1:
+                enemies.add(Enemy(current_level))
 
     if current_level == 2 and not platforms_spawned:
-        platforms.add(Platform(200, screen_height - 150))
-        platforms.add(Platform(400, screen_height - 250))
-        platforms.add(Platform(600, screen_height - 350))
+        platforms.add(Platform(200, screen_height - 150, 150, 20))
+        platforms.add(Platform(400, screen_height - 250, 150, 20))
+        platforms.add(Platform(600, screen_height - 350, 150, 20))
         platforms_spawned = True  
-
+        platform = list(platforms)[0]
+        Sitting_enemy = Sittingenemy(platform.rect.centerx, platform.rect.top, level)
+        enemies.add(Sitting_enemy)
+    
     if main_menu:
+        
+        screen.blit(main_menu_bg,(0,0))
         draw_main_menu()
         pygame.display.flip()
         clock.tick(60)
@@ -403,7 +572,6 @@ while running:
     if multishot_active and current_time - multishot_timer > MULTISHOT_DURATION:
         multishot_active = False
 
-    
     # Update
     player.update(pressed_keys)
     bullets.update()
@@ -412,6 +580,8 @@ while running:
     boss_bullets.update()
     powerups.update()
     platforms.update()
+    for boss in boss_group:
+        boss.lasers.update()
 
 # Collisions
     # Bullet hits enemy
@@ -433,6 +603,7 @@ while running:
                 bullet.kill()
                 for boss in boss_group:
                     boss.health -= 1
+                    boss.lasers.update()
                     if boss.health <= 0:
                         boss.kill()
                         level_complete = True
@@ -453,7 +624,6 @@ while running:
         player.take_damage(0)
         if player.lives == 0:
             level_complete = True
-
 
     # Level transitions
     if score >= 10 and current_level == 1:
@@ -480,6 +650,9 @@ while running:
     boss_bullets.draw(screen)
     platforms.draw(screen)
     powerups.draw(screen) 
+    if current_level == 3:
+        for boss in boss_group:
+         boss.lasers.draw(screen)
 
     draw_health_bar(screen, 20, 20, player.health, 100)
     screen.blit(font.render(f"Score: {score}", True, WHITE), (20, 50))
