@@ -23,7 +23,7 @@ font = pygame.font.SysFont("Arial", 30, bold=True)
 screen_width = 1200
 screen_height = 800
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Game") #Change name
+pygame.display.set_caption("2D Game") 
 clock = pygame.time.Clock()
 
 # Backgrounds for levels           
@@ -38,9 +38,11 @@ scroll_level2 = 0
 scroll_level3 = 0
 bg_width = bg_image1.get_width()
 tiles = math.ceil(screen_width / bg_width) + 1
-#main menu
+
+# Main menu
 main_menu_bg = pygame.transform.scale(pygame.image.load("images/mainmenu.jpg").convert(), (screen_width, screen_height))
-#pause
+
+# Pause
 paused = False
 
 # Colours 
@@ -66,6 +68,7 @@ platforms = pygame.sprite.Group()
 platforms_spawned = False
 ADDENEMY = pygame.USEREVENT + 1
 
+# ADD COMMENT
 def load_animation_frames(sheet_path, frame_width, frame_height, row, num_frames, colorkey=(0, 0, 0)):
     sheet = pygame.image.load(sheet_path).convert_alpha()
     sheet.set_colorkey((48, 73, 65))
@@ -76,11 +79,9 @@ def load_animation_frames(sheet_path, frame_width, frame_height, row, num_frames
         y = row * frame_height
         frame = sheet.subsurface(pygame.Rect(x, y, frame_width, frame_height))
         frames.append(frame)
-
     return frames
 
 # Classes
-
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -105,7 +106,7 @@ class Player(pygame.sprite.Sprite):
         self.frame_timer = 0
         self.facing_right = True
         self.shooting = False
-        self.shoot_anim_duration = 450  # milliseconds
+        self.shoot_anim_duration = 450  
         self.shoot_anim_timer = 0
 
         # Initial image and rect setup
@@ -184,6 +185,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
 
+        # Add comment - This sets up platforms?
         on_platform = False
         for platform in platforms:
             platform_left = platform.rect.left
@@ -222,7 +224,7 @@ class Player(pygame.sprite.Sprite):
             self.jumpCount += 1
             self.jumping = True
 
-class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
+class Enemy(pygame.sprite.Sprite): 
     def __init__(self, level):
         super().__init__()
         original_image = pygame.image.load("images/tank.png").convert()
@@ -252,7 +254,7 @@ class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
         if self.rect.right < 0:
             self.kill()
 
-class Sittingenemy(Enemy): # this is start of sitting eneum that g oon platfroms
+class Sittingenemy(Enemy): 
     def __init__(self, x, y, level):
         super().__init__(level)
         original_image = pygame.image.load("images/sittingenemy.jpg").convert()
@@ -294,7 +296,7 @@ class Bullet(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.Surface((10, 5))
         self.image.fill(YELLOW)
-        self.rect = self.image.get_rect(center=(x, y))
+        self.rect = self.image.get_rect(center = (x, y))
         self.speed = 10
 
     def update(self):
@@ -349,7 +351,7 @@ class Ground(pygame.sprite.Sprite):
         self.image.fill(GREEN) 
         self.rect = self.image.get_rect(topleft=(x, y))
 
-class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
+class Boss(pygame.sprite.Sprite): 
     def __init__(self):
         super().__init__()
         self.last_laser_time = 0
@@ -385,7 +387,7 @@ class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
         # Turn off laser after duration
         if self.laser_active and pygame.time.get_ticks() - self.last_laser_time > self.laser_duration * 10:
             self.laser_active = False
-            self.laser_cooldown = 300  # wait ~5 seconds to fir
+            self.laser_cooldown = 300  # wait ~5 seconds to fire
 
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -408,8 +410,7 @@ class Laser(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(midleft=(x, y))
         self.spawn_time = pygame.time.get_ticks()
 
-    def update(self):
-        
+    def update(self):      
         if pygame.time.get_ticks() - self.spawn_time > 1500:
             self.kill()
 
@@ -467,10 +468,7 @@ def draw_health_bar(surface, x, y, health, max_health):
 def draw_boss_health_bar(surface, x, y, health, max_health):
     pygame.draw.rect(surface, RED, (x, y, 300, 20))
     pygame.draw.rect(surface, CYAN, (x, y, 300 * (health / max_health), 20))
- 
- #Edited up to here
 
-# Timers #Add more enemies, waves of enemies, different speeds
 enemy_spawn_event = pygame.USEREVENT + 1
 pygame.time.set_timer(enemy_spawn_event, 1500)
 platforms_spawned = False 
@@ -553,7 +551,6 @@ while running:
         enemies.add(Sitting_enemy)
     
     if main_menu:
-        
         screen.blit(main_menu_bg,(0,0))
         draw_main_menu()
         pygame.display.flip()
