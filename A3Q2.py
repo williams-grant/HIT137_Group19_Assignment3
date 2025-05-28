@@ -1,3 +1,6 @@
+# ASSIGNMENT 3 QUESTION 2 HIT137
+
+# Import libraries
 import pygame
 import random
 import math 
@@ -17,7 +20,7 @@ from pygame.locals import (
     K_p,
 )
 
-# Initialise game and setup screen
+# Initialise game and setup display
 pygame.init()
 font = pygame.font.SysFont("Arial", 30, bold=True)
 screen_width = 1200
@@ -33,13 +36,14 @@ bg_image2 = pygame.transform.scale(pygame.image.load("images/Background2.png").c
                                 ) 
 bg_image3 = pygame.transform.scale(pygame.image.load("images/Background3.jpeg").convert(), (screen_width, screen_height)
                                 )
+# Initialise background scroll positions
 scroll_level1 = 0
 scroll_level2 = 0
 scroll_level3 = 0
 bg_width = bg_image1.get_width()
 tiles = math.ceil(screen_width / bg_width) + 1
 
-# Main menu
+# Main menu background
 main_menu_bg = pygame.transform.scale(pygame.image.load("images/mainmenu.jpg").convert(), (screen_width, screen_height))
 
 # Pause
@@ -68,7 +72,7 @@ platforms = pygame.sprite.Group()
 platforms_spawned = False
 ADDENEMY = pygame.USEREVENT + 1
 
-# ADD COMMENT
+# Animation from a sprite sheet
 def load_animation_frames(sheet_path, frame_width, frame_height, row, num_frames, colorkey=(0, 0, 0)):
     sheet = pygame.image.load(sheet_path).convert_alpha()
     sheet.set_colorkey((48, 73, 65))
@@ -109,7 +113,7 @@ class Player(pygame.sprite.Sprite):
         self.shoot_anim_duration = 450  
         self.shoot_anim_timer = 0
 
-        # Initial image and rect setup
+        # Initial position and image setup
         self.image = self.animations[self.state][self.frame_index]
         if not self.facing_right:
             self.image = pygame.transform.flip(self.image, True, False)
@@ -125,17 +129,17 @@ class Player(pygame.sprite.Sprite):
         self.jumpCount = 0
         self.gravity = 0.5
 
-        # Health and lives
+        # Player statistics
         self.health = 100
         self.lives = 3
         self.max_jumps = 2
 
-        # Shooting
+        # Shooting cooldown
         self.last_shot_time = 0
         self.shot_cooldown = 400
 
     def update(self, pressed_keys):
-        # Determine state
+        # Determine animation state
         if self.shooting and pygame.time.get_ticks() - self.shoot_anim_timer > self.shoot_anim_duration:
             self.shooting = False
         if self.shooting:
@@ -176,6 +180,7 @@ class Player(pygame.sprite.Sprite):
         self.vel_y += self.gravity
         self.pos_y += self.vel_y
 
+        # Ground collision
         if self.pos_y + self.rect.height >= screen_height - 20:
             self.pos_y = screen_height - 20 - self.rect.height
             self.vel_y = 0
@@ -185,7 +190,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
 
-        # Add comment - This sets up platforms?
+        # Platform collision
         on_platform = False
         for platform in platforms:
             platform_left = platform.rect.left
@@ -211,6 +216,7 @@ class Player(pygame.sprite.Sprite):
             self.jumping = True
    
     def take_damage(self, amount):
+        # Reduce health
         if self.lives <= 0:
             return
         self.health -= amount
