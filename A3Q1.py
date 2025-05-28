@@ -302,6 +302,7 @@ class title_frame(Frame):
         self.title_label = Label(text='TKinter/OpenCV Image Editor', font=title_font)
         self.title_label.pack(pady=20)
 
+
 class control_frame(Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -341,6 +342,7 @@ class control_frame(Frame):
         self.undo_button.grid(row=10, column=0, padx=10, pady=(20,10))
         self.redo_button.grid(row=10, column=1, padx=10, pady=(20,10))
         self.reset_button.grid(row=11, column=0, columnspan=2, padx=10, pady=10)
+
 
 class preview_frame(Frame):
     def __init__(self, parent):
