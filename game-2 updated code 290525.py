@@ -23,24 +23,24 @@ font = pygame.font.SysFont("Arial", 30, bold=True)
 screen_width = 1200
 screen_height = 800
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Game") #Change name
+pygame.display.set_caption("2D Game") 
 clock = pygame.time.Clock()
 
 # Backgrounds for levels           
-bg_image1 = pygame.transform.scale(pygame.image.load("images/Background1.png").convert(), (screen_width, screen_height)
-                                )
-bg_image2 = pygame.transform.scale(pygame.image.load("images/Background2.png").convert(), (screen_width, screen_height)
-                                ) 
-bg_image3 = pygame.transform.scale(pygame.image.load("images/Background3.jpeg").convert(), (screen_width, screen_height)
-                                )
+bg_image1 = pygame.transform.scale(pygame.image.load("images/Background1.png").convert(), (screen_width, screen_height))
+bg_image2 = pygame.transform.scale(pygame.image.load("images/Background2.png").convert(), (screen_width, screen_height)) 
+bg_image3 = pygame.transform.scale(pygame.image.load("images/Background3.jpeg").convert(), (screen_width, screen_height))
+
 scroll_level1 = 0
 scroll_level2 = 0
 scroll_level3 = 0
 bg_width = bg_image1.get_width()
 tiles = math.ceil(screen_width / bg_width) + 1
-#main menu
+
+# Background for main menu
 main_menu_bg = pygame.transform.scale(pygame.image.load("images/mainmenu.jpg").convert(), (screen_width, screen_height))
-#pause
+
+# Pause
 paused = False
 
 # Colours 
@@ -61,7 +61,7 @@ boss_fight = False
 level_complete = False
 MULTISHOT_DURATION = 5000
 
-#level transtion for each level message
+# Level transtion message
 level_transition = False
 level_transition_time = 0
 transition_display_duration = 2000
@@ -71,31 +71,29 @@ platforms = pygame.sprite.Group()
 platforms_spawned = False
 ADDENEMY = pygame.USEREVENT + 1
 
+# Load animation frames
 def load_animation_frames(sheet_path, frame_width, frame_height, row, num_frames, colorkey=(0, 0, 0)):
     sheet = pygame.image.load(sheet_path).convert_alpha()
     sheet.set_colorkey((48, 73, 65))
     frames = []
-
     for i in range(num_frames):
         x = i * frame_width
         y = row * frame_height
         frame = sheet.subsurface(pygame.Rect(x, y, frame_width, frame_height))
         frames.append(frame)
-
     return frames
 
-# Classes
-
+# -- Classes --
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
 
         # Set sprite sheet path and calculate frame dimensions
-        sprite_sheet_path = "images/Free-Soldier-Sprite-Sheets-Pixel-Art2.png"
+        sprite_sheet_path = "images/soldier.png"
         frame_width = pygame.image.load(sprite_sheet_path).get_width() // 4
         frame_height = pygame.image.load(sprite_sheet_path).get_height() // 4
 
-        # Load animations using correct frame dimensions
+        # Load animations
         self.animations = {
             "idle": load_animation_frames(sprite_sheet_path, frame_width, frame_height, 0, 1),
             "walk": load_animation_frames(sprite_sheet_path, frame_width, frame_height, 2, 1),
@@ -110,20 +108,18 @@ class Player(pygame.sprite.Sprite):
         self.frame_timer = 0
         self.facing_right = True
         self.shooting = False
-        self.shoot_anim_duration = 450  # milliseconds
+        self.shoot_anim_duration = 450  
         self.shoot_anim_timer = 0
 
-        # Initial image and rect setup
         self.image = self.animations[self.state][self.frame_index]
         if not self.facing_right:
             self.image = pygame.transform.flip(self.image, True, False)
+        
         self.rect = self.image.get_rect()
+        self.velocity_y = 0
         self.pos_x = float(self.rect.x)
         self.pos_y = float(self.rect.y)
 
-        # Physics and state
-        self.pos_x = float(self.rect.x)
-        self.pos_y = float(self.rect.y)
         self.vel_y = 0
         self.jumping = False
         self.jumpCount = 0
@@ -143,13 +139,13 @@ class Player(pygame.sprite.Sprite):
         if self.shooting and pygame.time.get_ticks() - self.shoot_anim_timer > self.shoot_anim_duration:
             self.shooting = False
         if self.shooting:
-            self.state="shoot"
+            self.state = "shoot"
         elif pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_RIGHT]:
             self.state = "walk"
         else:
             self.state = "idle"
 
-        # Advance animation frame
+        # Animation frame control
         self.frame_timer += self.animation_speed
         if self.frame_timer >= 1:
             self.frame_index = (self.frame_index + 1) % len(self.animations[self.state])
@@ -157,11 +153,9 @@ class Player(pygame.sprite.Sprite):
 
         # Update image
         current_bottemleft = self.rect.bottomleft
-
         self.image = self.animations[self.state][self.frame_index]
         if not self.facing_right:
             self.image = pygame.transform.flip(self.image, True, False)
-
         self.rect = self.image.get_rect()
         self.rect.bottomleft = current_bottemleft
         frame = self.animations[self.state][self.frame_index]
@@ -176,32 +170,28 @@ class Player(pygame.sprite.Sprite):
             self.facing_right = True
         self.pos_x = max(0, min(self.pos_x, screen_width - self.rect.width))
 
-        # Gravity
+        # Gravity and jumping
         self.vel_y += self.gravity
         self.pos_y += self.vel_y
 
-        if self.pos_y + self.rect.height >= screen_height - 20:
-            self.pos_y = screen_height - 20 - self.rect.height
+        if self.pos_y + self.rect.height >= screen_height - 10:
+            self.pos_y = screen_height - 10 - self.rect.height
             self.vel_y = 0
             self.jumpCount = 0
             self.jumping = False
 
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
-
+        
+        # Platform collision
         on_platform = False
         for platform in platforms:
-            platform_left = platform.rect.left
-            platform_right = platform.rect.right
-            player_center = self.rect.centerx
-            player_half_width = self.rect.width // 2
-
             if (
                 self.vel_y >= 0 and
                 self.rect.bottom <= platform.rect.top + 5 and
                 self.rect.bottom + self.vel_y >= platform.rect.top and
-                player_center + player_half_width // 2 > platform_left and
-                player_center - player_half_width // 2 < platform_right
+                self.rect.centerx > platform.rect.left and
+                self.rect.centerx < platform.rect.right
             ):
                 self.pos_y = platform.rect.top - self.rect.height
                 self.vel_y = 0
@@ -209,7 +199,7 @@ class Player(pygame.sprite.Sprite):
                 self.jumping = True
                 on_platform = True
                 break
-        
+                
         if not on_platform and self.pos_y + self.rect.height < screen_height - 20:
             self.jumping = True
    
@@ -227,7 +217,7 @@ class Player(pygame.sprite.Sprite):
             self.jumpCount += 1
             self.jumping = True
 
-class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
+class Enemy(pygame.sprite.Sprite): 
     def __init__(self, level):
         super().__init__()
         original_image = pygame.image.load("images/tank.png").convert()
@@ -257,11 +247,12 @@ class Enemy(pygame.sprite.Sprite): #add different types of enemies, speeds etc
         if self.rect.right < 0:
             self.kill()
 
-class Sittingenemy(Enemy): # this is start of sitting eneum that g oon platfroms
+# Spikes on platforms
+class Sittingenemy(Enemy):
     def __init__(self, x, y, level):
         super().__init__(level)
         original_image = pygame.image.load("images/sittingenemy.png").convert()
-        self.image = pygame.transform.scale(original_image, (200, 110))  
+        self.image = pygame.transform.scale(original_image, (20, 50))  
         self.image.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.image.get_rect(midbottom=(x, y))
         self.health = 3  
@@ -275,6 +266,7 @@ class Sittingenemy(Enemy): # this is start of sitting eneum that g oon platfroms
         if self.rect.right < 0:
             self.kill()
 
+# Flying enemy
 class SineEnemy(Enemy):
     def __init__(self, level):
         super().__init__(level)
@@ -285,7 +277,13 @@ class SineEnemy(Enemy):
         self.wave_amplitude = 250  # vertical swing
         self.wave_frequency = 0.05  # controls speed of sine wave
         self.frame = 0
-        self.speed = 3 + level
+        
+        if level == 2:
+            self.speed = 4
+            self.health = 2
+        else:
+            self.speed = 6
+            self.health = 1
 
     def update(self):
         self.rect.x -= self.speed
@@ -310,13 +308,13 @@ class Bullet(pygame.sprite.Sprite):
 class PowerUp(pygame.sprite.Sprite): 
     def __init__(self, x, y):
         super(PowerUp, self).__init__()
-        self.type = random.choice(['health', 'bonus','multishot'])  # this is how we add more powerups
+        self.type = random.choice(["health", "bonus", "multishot"])  # this is how we add more powerups
         self.image = pygame.Surface((20, 20))
-        if self.type == 'health':
+        if self.type == "health":
             self.image.fill((GREEN)) 
-        elif self.type == 'bonus':
+        elif self.type == "bonus":
             self.image.fill((MAGENTA))
-        elif self.type == 'multishot':
+        elif self.type == "multishot":
             self.image.fill((CYAN))  
         self.rect = self.image.get_rect(center=(x, y))
         self.speed = 3
@@ -327,7 +325,7 @@ class PowerUp(pygame.sprite.Sprite):
             self.kill()    
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, width = 150, height = 20):
+    def __init__(self, x, y, width = 200, height = 20):
         super().__init__()
         self.image = pygame.Surface((width, height))
         self.image.fill((BROWN))  
@@ -404,7 +402,6 @@ class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
             self.change_direction_timer = current_time
 
         self.rect.y += self.vertical_speed * self.vertical_direction
-
         
         if self.rect.top < 0: # just keeps boss on screen
             self.rect.top = 0
@@ -437,9 +434,7 @@ class Laser(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(midleft=(0, boss.rect.centery))
         self.spawn_time = pygame.time.get_ticks()
       
-
     def update(self):
-        
         self.width = self.boss.rect.left
         self.image = pygame.Surface((self.width, self.height)) #this code is for if boss moves side to side but may not be used if we do not add that
         self.image.fill((255, 0, 0))
@@ -448,8 +443,7 @@ class Laser(pygame.sprite.Sprite):
         if pygame.time.get_ticks() - self.boss.last_laser_time > self.boss.laser_duration:
             self.kill()
 
-
-
+# Game setup
 def reset_game():
     global player, enemies, bullets, health_bar, score, game_over, powerups
     global multishot_active, multishot_timer, level, score_to_next_level, enemy_spawn_interval
@@ -485,7 +479,6 @@ def reset_game():
     boss_fight = False
     level_complete = False
     main_menu = True
-    
 
 reset_game()
 
@@ -506,9 +499,9 @@ def draw_boss_health_bar(surface, x, y, health, max_health):
     pygame.draw.rect(surface, RED, (x, y, 300, 20))
     pygame.draw.rect(surface, CYAN, (x, y, 300 * (health / max_health), 20))
  
- #Edited up to here
 
-# Timers #Add more enemies, waves of enemies, different speeds
+
+# Timers 
 enemy_spawn_event = pygame.USEREVENT + 1
 pygame.time.set_timer(enemy_spawn_event, 1500)
 platforms_spawned = False 
@@ -521,6 +514,7 @@ while running:
     current_time = pygame.time.get_ticks()
     pressed_keys = pygame.key.get_pressed()
 
+    # Scrolling backgrounds
     if current_level == 1:
         scroll_level1 = (scroll_level1 - 2) % bg_width
         for i in range(tiles):
@@ -582,16 +576,22 @@ while running:
                 enemies.add(Enemy(current_level))
 
     if current_level == 2 and not platforms_spawned:
-        platforms.add(Platform(200, screen_height - 150, 150, 20))
-        platforms.add(Platform(400, screen_height - 250, 150, 20))
-        platforms.add(Platform(600, screen_height - 350, 150, 20))
-        platforms_spawned = True  
-        platform = list(platforms)[0]
-        Sitting_enemy = Sittingenemy(platform.rect.centerx, platform.rect.top, level)
-        enemies.add(Sitting_enemy)
-    
-    if main_menu:
-        
+        platform_positions = [
+            (200, screen_height - 150),
+            (400, screen_height - 250),
+            (600, screen_height - 350)
+        ]
+        for x, y in platform_positions:
+            platform = Platform(x, y, 200, 20)
+            platforms.add(platform)
+
+            sit_enemy = Sittingenemy(platform.rect.centerx, platform.rect.top, level)
+            sit_enemy.rect.midbottom = (platform.rect.centerx, platform.rect.top)
+            enemies.add(sit_enemy)
+
+        platforms_spawned = True
+
+    if main_menu:  
         screen.blit(main_menu_bg,(0,0))
         draw_main_menu()
         pygame.display.flip()
@@ -600,11 +600,11 @@ while running:
 
     collected_powerups = pygame.sprite.spritecollide(player, powerups, True)
     for powerup in collected_powerups: 
-                if powerup.type == 'health':
+                if powerup.type == "health":
                     player.health =  min(100, player.health + 5)
-                elif powerup.type == 'bonus': 
+                elif powerup.type == "bonus": 
                     score += 5  
-                elif powerup.type == 'multishot':
+                elif powerup.type == "multishot":
                     multishot_active = True
                     multishot_timer = current_time
     if multishot_active and current_time - multishot_timer > MULTISHOT_DURATION:
@@ -658,7 +658,15 @@ while running:
                     player.health -= 50
     # Enemy hits player
     if pygame.sprite.spritecollideany(player, enemies):
-        player.health -= 1
+        collided_enemies = pygame.sprite.spritecollide(player, enemies, False)
+        for enemy in collided_enemies:
+            if isinstance(enemy, Sittingenemy):
+            # Check if player is landing on top of the enemy
+                if player.rect.bottom <= enemy.rect.top + 10 and player.velocity_y > 0:
+                    enemy.kill()  # or reduce health
+            else:
+            # Other enemy types (optional)
+                player.health -= 1
 
     # Check player death
     if player.health <= 0 and not level_complete:
