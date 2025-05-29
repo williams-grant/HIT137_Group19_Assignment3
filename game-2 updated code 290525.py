@@ -672,7 +672,7 @@ while running:
         for enemy in collided_enemies:
             if isinstance(enemy, Sittingenemy):
             # Check if player is landing on top of the enemy
-                if player.rect.bottom <= enemy.rect.top + 10 and player.velocity_y > 0:
+                if player.rect.bottom <= enemy.rect.top + 10 and player.vel_y > 0:
                     #enemy.kill()  # or reduce health
                     player.health -= 10
             else:
