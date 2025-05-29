@@ -1,6 +1,7 @@
 import pygame
 import random
 import math 
+import os
 
 from pygame.locals import (
     K_SPACE,
@@ -27,9 +28,9 @@ pygame.display.set_caption("2D Game")
 clock = pygame.time.Clock()
 
 # Backgrounds for levels           
-bg_image1 = pygame.transform.scale(pygame.image.load("images/Background1.png").convert(), (screen_width, screen_height))
-bg_image2 = pygame.transform.scale(pygame.image.load("images/Background2.png").convert(), (screen_width, screen_height)) 
-bg_image3 = pygame.transform.scale(pygame.image.load("images/Background3.jpeg").convert(), (screen_width, screen_height))
+bg_image1 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background1.png").convert(), (screen_width, screen_height))
+bg_image2 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background2.jpeg").convert(), (screen_width, screen_height)) 
+bg_image3 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background3.jpeg").convert(), (screen_width, screen_height))
 
 scroll_level1 = 0
 scroll_level2 = 0
@@ -38,7 +39,7 @@ bg_width = bg_image1.get_width()
 tiles = math.ceil(screen_width / bg_width) + 1
 
 # Background for main menu
-main_menu_bg = pygame.transform.scale(pygame.image.load("images/mainmenu.jpg").convert(), (screen_width, screen_height))
+main_menu_bg = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/mainmenu.jpg").convert(), (screen_width, screen_height))
 
 # Pause
 paused = False
@@ -89,7 +90,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         # Set sprite sheet path and calculate frame dimensions
-        sprite_sheet_path = "images/soldier.png"
+        sprite_sheet_path = os.path.dirname(__file__) + "/images/soldier.png"
         frame_width = pygame.image.load(sprite_sheet_path).get_width() // 4
         frame_height = pygame.image.load(sprite_sheet_path).get_height() // 4
 
@@ -210,6 +211,7 @@ class Player(pygame.sprite.Sprite):
         if self.health <= 0:
             self.lives = max(0, self.lives - 1)
             self.health = 100 if self.lives > 0 else 0
+            
 
     def jump(self):
         if self.jumpCount < self.max_jumps:
@@ -220,7 +222,7 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite): 
     def __init__(self, level):
         super().__init__()
-        original_image = pygame.image.load("images/tank.png").convert()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/tank.png").convert()
         scaled_image = pygame.transform.scale(original_image, (200, 110))  
         self.image = scaled_image
         self.image.set_colorkey((0, 0, 0), RLEACCEL)
@@ -231,7 +233,7 @@ class Enemy(pygame.sprite.Sprite):
             spawn_y = screen_height - 20  
             self.rect = self.image.get_rect(midbottom=(spawn_x, spawn_y))
         else:
-            original_image = pygame.image.load("images/plane.png").convert()
+            original_image = pygame.image.load(os.path.dirname(__file__) + "/images/plane.png").convert_alpha()
             scaled_image = pygame.transform.scale(original_image, (200, 110))  
             self.image = scaled_image
             spawn_y = random.randint(0, screen_height - self.image.get_height())
@@ -251,7 +253,7 @@ class Enemy(pygame.sprite.Sprite):
 class Sittingenemy(Enemy):
     def __init__(self, x, y, level):
         super().__init__(level)
-        original_image = pygame.image.load("images/sittingenemy.png").convert()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/sittingenemy.png").convert()
         self.image = pygame.transform.scale(original_image, (20, 50))  
         self.image.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.image.get_rect(midbottom=(x, y))
@@ -270,7 +272,7 @@ class Sittingenemy(Enemy):
 class SineEnemy(Enemy):
     def __init__(self, level):
         super().__init__(level)
-        original_image = pygame.image.load("images/sineenemy.png").convert()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/sineenemy.png").convert_alpha()
         self.image = pygame.transform.scale(original_image, (200, 110))  
         self.start_x = self.rect.x
         self.start_y = self.rect.y
@@ -293,12 +295,12 @@ class SineEnemy(Enemy):
             self.kill()
 
 class Bullet(pygame.sprite.Sprite): 
-    def __init__(self, x, y):
+    def __init__(self, x, y, direction):
         super().__init__()
         self.image = pygame.Surface((10, 5))
         self.image.fill(YELLOW)
         self.rect = self.image.get_rect(center=(x, y))
-        self.speed = 10
+        self.speed = 10 * direction
 
     def update(self):
         self.rect.move_ip(self.speed, 0)
@@ -357,7 +359,7 @@ class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
         super().__init__()
         self.last_laser_time = 0
         self.lasers = pygame.sprite.Group()
-        original_image = pygame.image.load("images/boss.jpg").convert()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/boss.png").convert_alpha()
         self.image = pygame.transform.scale(original_image, (200, 110))  
         self.rect = self.image.get_rect(midbottom=(screen_width - 50, screen_height - 20))
         self.health = 35
@@ -539,12 +541,20 @@ while running:
                 running = False
             elif event.key == K_SPACE and not main_menu:
                 if current_time - player.last_shot_time > player.shot_cooldown:
-                    if multishot_active:
-                        bullets.add(Bullet(player.rect.right, player.rect.centery - 10))
-                        bullets.add(Bullet(player.rect.right, player.rect.centery))
-                        bullets.add(Bullet(player.rect.right, player.rect.centery + 10))
+
+                    if player.facing_right:
+                        direction = 1
+                        bullet_shape = player.rect.right
                     else:
-                        bullets.add(Bullet(player.rect.right, player.rect.centery))
+                        direction = -1
+                        bullet_shape = player.rect.left
+
+                    if multishot_active:
+                        bullets.add(Bullet(bullet_shape, player.rect.centery - 10, direction))
+                        bullets.add(Bullet(bullet_shape, player.rect.centery, direction))
+                        bullets.add(Bullet(bullet_shape, player.rect.centery + 10, direction))
+                    else:
+                        bullets.add(Bullet(bullet_shape, player.rect.centery, direction))
                     player.last_shot_time = current_time
                     player.shooting = True
                     player.shoot_anim_timer = pygame.time.get_ticks()
@@ -663,7 +673,8 @@ while running:
             if isinstance(enemy, Sittingenemy):
             # Check if player is landing on top of the enemy
                 if player.rect.bottom <= enemy.rect.top + 10 and player.velocity_y > 0:
-                    enemy.kill()  # or reduce health
+                    #enemy.kill()  # or reduce health
+                    player.health -= 10
             else:
             # Other enemy types (optional)
                 player.health -= 1
