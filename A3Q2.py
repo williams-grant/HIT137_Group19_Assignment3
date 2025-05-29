@@ -29,7 +29,7 @@ clock = pygame.time.Clock()
 
 # Backgrounds for levels           
 bg_image1 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background1.png").convert(), (screen_width, screen_height))
-bg_image2 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background2.jpeg").convert(), (screen_width, screen_height)) 
+bg_image2 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background2.png").convert(), (screen_width, screen_height)) 
 bg_image3 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background3.jpeg").convert(), (screen_width, screen_height))
 
 scroll_level1 = 0
