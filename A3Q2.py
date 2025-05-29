@@ -354,12 +354,12 @@ class Ground(pygame.sprite.Sprite):
         self.image.fill(GREEN) 
         self.rect = self.image.get_rect(topleft=(x, y))
 
-class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
+class Boss(pygame.sprite.Sprite): 
     def __init__(self):
         super().__init__()
         self.last_laser_time = 0
         self.lasers = pygame.sprite.Group()
-        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/boss.png").convert_alpha()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/boss.jpg").convert_alpha()
         self.image = pygame.transform.scale(original_image, (200, 110))  
         self.rect = self.image.get_rect(midbottom=(screen_width - 50, screen_height - 20))
         self.health = 35
