@@ -15,6 +15,7 @@ class PhotoApp(Tk):
         self.image = None
         self.image_rgb = None
         self.edited_image = None
+        self.resized = None
 
         #Canvas variables
         self.canvas = None
@@ -117,7 +118,7 @@ class PhotoApp(Tk):
         if not file_path:
             return
         try:
-            img_pil = Image.fromarray(cv2.cvtColor(self.edited_image, cv2.COLOR_BGR2RGB))
+            img_pil = Image.fromarray(cv2.cvtColor(self.resized, cv2.COLOR_BGR2RGB))
             img_pil.save(file_path)
             messagebox.showinfo('Save Successful', f'Image saved to:\n{file_path}')
         except Exception as e:
@@ -185,10 +186,10 @@ class PhotoApp(Tk):
                 scale_percent = float(self.preview_resize_var.get())
                 width = int(self.edited_image.shape[1] * scale_percent / 100)
                 height = int(self.edited_image.shape[0] * scale_percent / 100)
-                resized = cv2.resize(self.edited_image, (width, height), interpolation=cv2.INTER_AREA)
-                resized = self.adjust_image(resized)
+                self.resized = cv2.resize(self.edited_image, (width, height), interpolation=cv2.INTER_AREA)
+                self.resized = self.adjust_image(self.resized)
 
-                img_pil = Image.fromarray(cv2.cvtColor(resized, cv2.COLOR_BGR2RGB))
+                img_pil = Image.fromarray(cv2.cvtColor(self.resized, cv2.COLOR_BGR2RGB))
                 img_tk = ImageTk.PhotoImage(img_pil)
 
                 self.image_frame.edited_image_panel.config(image=img_tk)
@@ -239,14 +240,13 @@ class PhotoApp(Tk):
         if len(self.undo_list) == 0:
             messagebox.showwarning('Nothing to undo', 'There is nothing to undo')
         else:
-            self.redo_list.append((
-                self.edited_image.copy(),
+            self.redo_list.append((self.edited_image.copy(),
                 self.preview_resize_var.get(),
                 self.brightness.get(),
                 self.contrast.get(),
                 self.colourmode
             ))
-
+            
             img, resize_var, brightness, contrast, colourmode = self.undo_list.pop()
 
             self.edited_image = img
@@ -262,8 +262,7 @@ class PhotoApp(Tk):
         if len(self.redo_list) == 0:
             messagebox.showwarning('Nothing to redo', 'There is nothing to redo')
         else:
-            self.undo_list.append((
-                self.edited_image.copy(),
+            self.undo_list.append((self.edited_image.copy(),
                 self.preview_resize_var.get(),
                 self.brightness.get(),
                 self.contrast.get(),
@@ -286,6 +285,7 @@ class PhotoApp(Tk):
         self.preview_resize_var.set(self.default_resize_var)
         self.brightness.set(self.default_brightness)
         self.contrast.set(self.default_contrast)
+        self.colourmode = None
 
         self.edited_image = self.image
 
