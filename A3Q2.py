@@ -29,7 +29,7 @@ clock = pygame.time.Clock()
 
 # Backgrounds for levels           
 bg_image1 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background1.png").convert(), (screen_width, screen_height))
-bg_image2 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background2.png").convert(), (screen_width, screen_height)) 
+bg_image2 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background2.jpeg").convert(), (screen_width, screen_height)) 
 bg_image3 = pygame.transform.scale(pygame.image.load(os.path.dirname(__file__) + "/images/Background3.jpeg").convert(), (screen_width, screen_height))
 
 scroll_level1 = 0
@@ -55,7 +55,6 @@ BROWN = (150, 75, 0)
 BLACK = (0,0,0)
 
 # Game variables
-show_menu = True
 current_level = 1
 max_level = 3
 boss_fight = False
@@ -117,7 +116,6 @@ class Player(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image, True, False)
         
         self.rect = self.image.get_rect()
-        self.velocity_y = 0
         self.pos_x = float(self.rect.x)
         self.pos_y = float(self.rect.y)
 
@@ -153,12 +151,12 @@ class Player(pygame.sprite.Sprite):
             self.frame_timer = 0
 
         # Update image
-        current_bottemleft = self.rect.bottomleft
+        current_bottomleft = self.rect.bottomleft
         self.image = self.animations[self.state][self.frame_index]
         if not self.facing_right:
             self.image = pygame.transform.flip(self.image, True, False)
         self.rect = self.image.get_rect()
-        self.rect.bottomleft = current_bottemleft
+        self.rect.bottomleft = current_bottomleft
         frame = self.animations[self.state][self.frame_index]
         
         # Movement
@@ -222,7 +220,7 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite): 
     def __init__(self, level):
         super().__init__()
-        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/tank.png").convert()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/tank.png").convert_alpha()
         scaled_image = pygame.transform.scale(original_image, (200, 110))  
         self.image = scaled_image
         self.image.set_colorkey((0, 0, 0), RLEACCEL)
@@ -354,12 +352,12 @@ class Ground(pygame.sprite.Sprite):
         self.image.fill(GREEN) 
         self.rect = self.image.get_rect(topleft=(x, y))
 
-class Boss(pygame.sprite.Sprite): 
+class Boss(pygame.sprite.Sprite): #ADD image instead of rectangle
     def __init__(self):
         super().__init__()
         self.last_laser_time = 0
         self.lasers = pygame.sprite.Group()
-        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/boss.jpg").convert_alpha()
+        original_image = pygame.image.load(os.path.dirname(__file__) + "/images/boss.png").convert_alpha()
         self.image = pygame.transform.scale(original_image, (200, 110))  
         self.rect = self.image.get_rect(midbottom=(screen_width - 50, screen_height - 20))
         self.health = 35
@@ -389,16 +387,13 @@ class Boss(pygame.sprite.Sprite):
             self.last_laser_time = pygame.time.get_ticks()
             self.laser_active = True
             print("laser shot")
+        # Turn off laser after duration
         if self.laser_active and pygame.time.get_ticks() - self.last_laser_time > self.laser_duration * 10:
             self.laser_active = False
             self.laser_cooldown = 300
             self.lasers.empty()
             print("laser go ")
 
-        # Turn off laser after duration
-        if self.laser_active and pygame.time.get_ticks() - self.last_laser_time > self.laser_duration * 10:
-            self.laser_active = False
-            self.laser_cooldown = 300  # wait 5 seconds to fir
         if current_time - self.change_direction_timer > self.direction_change_interval:
             self.vertical_direction = random.choice([-1, 1])
             self.change_direction_timer = current_time
@@ -464,8 +459,7 @@ def reset_game():
     multishot_timer = 0
     level = 1
     score_to_next_level = 10
-    enemy_spawn_interval = 550
-    pygame.time.set_timer(ADDENEMY, enemy_spawn_interval)
+    enemy_spawn_interval = 1500
 
     all_sprites = pygame.sprite.Group(player)
     boss_group = pygame.sprite.Group()
@@ -505,10 +499,11 @@ def draw_boss_health_bar(surface, x, y, health, max_health):
 
 # Timers 
 enemy_spawn_event = pygame.USEREVENT + 1
-pygame.time.set_timer(enemy_spawn_event, 1500)
+pygame.time.set_timer(enemy_spawn_event, enemy_spawn_interval)
 platforms_spawned = False 
 multishot_active = False
 multishot_timer = 0
+
 
 # Main Loop
 running = True
@@ -686,7 +681,7 @@ while running:
             level_complete = True
 
     # Level transitions
-    if score >= 10 and current_level == 1:
+    if score >= score_to_next_level * current_level and current_level == 1:
         current_level = 2
         enemies.empty()
         bullets.empty()
@@ -694,7 +689,7 @@ while running:
         level_transition = True
         level_transition_time = pygame.time.get_ticks()
 
-    elif score >= 20 and current_level == 2 and not boss_fight:
+    elif score >= score_to_next_level * current_level and current_level == 2 and not boss_fight:
         current_level = 3
         enemies.empty()
         bullets.empty()
@@ -716,7 +711,7 @@ while running:
     powerups.draw(screen) 
     if current_level == 3:
         for boss in boss_group:
-         boss.lasers.draw(screen)
+            boss.lasers.draw(screen)
 
     draw_health_bar(screen, 20, 20, player.health, 100)
     screen.blit(font.render(f"Score: {score}", True, WHITE), (20, 50))
@@ -755,3 +750,4 @@ while running:
     clock.tick(60)
 
 pygame.quit()
+
